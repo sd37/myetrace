@@ -105,6 +105,7 @@ namespace etrace
         {
             if (options.ParsedClrKeywords == 0 &&
                 options.ParsedKernelKeywords == KernelTraceEventParser.Keywords.None &&
+                options.ParsedFrameworkEventKeywords == 0 &&
                 options.OtherProviders.Count == 0)
             {
                 Bail("No events to collect");
@@ -128,6 +129,11 @@ namespace etrace
                 {
                     session.EnableProvider(ClrTraceEventParser.ProviderGuid,
                                             matchAnyKeywords: (ulong)options.ParsedClrKeywords);
+                }
+                if (options.ParsedFrameworkEventKeywords != 0)
+                {
+                    session.EnableProvider(FrameworkEventSourceTraceEventParser.ProviderGuid,
+                        matchAnyKeywords: (ulong)options.ParsedFrameworkEventKeywords);
                 }
                 if (options.OtherProviders.Any())
                 {
@@ -198,6 +204,14 @@ namespace etrace
                                        .OrderBy(n => n))
                 {
                     Console.WriteLine($"\t{provider}");
+                }
+            }
+            if ((options.List & ListFlags.Framework) != 0)
+            {
+                Console.WriteLine("\nPublished providers (use with --framework):\n");
+                foreach (var keyword in Enum.GetNames(typeof(FrameworkEventSourceTraceEventParser.Keywords)))
+                {
+                    Console.WriteLine($"\t{keyword}");
                 }
             }
         }

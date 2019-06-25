@@ -17,7 +17,8 @@ namespace etrace
         CLR        = 0x2,
         Registered = 0x4,
         Published  = 0x8,
-        All        = Kernel | CLR | Registered | Published
+        Framework  = 0x10,
+        All        = Kernel | CLR | Registered | Published | Framework
     }
 
     class Options
@@ -52,8 +53,13 @@ namespace etrace
             HelpText = "The kernel keywords to enable.")]
         public List<string> KernelKeywords { get; set; } = new List<string>();
 
+        [OptionList("framework", Separator = ',', Required = false,
+            HelpText = "The framework keywords to enable.")]
+
+        public List<string> FrameworkEventKeywords { get; set; } = new List<string>();
+
         [OptionList("other", Separator = ',', Required = false,
-            HelpText = "Other (non-kernel, non-CLR) providers to enable. A list of GUIDs or friendly names."
+            HelpText = "Other (non-kernel, non-CLR, non-Framework) providers to enable. A list of GUIDs or friendly names."
             )]
         public List<string> OtherProviders { get; set; } = new List<string>();
 
@@ -61,7 +67,7 @@ namespace etrace
         public string File { get; set; }
 
         [Option("list", Required = false,
-            HelpText = "List keywords and/or providers. Options include: CLR, Kernel, Registered, Published, or a comma-separated combination thereof."
+            HelpText = "List keywords and/or providers. Options include: CLR, Kernel, Registered, Published, Framework, or a comma-separated combination thereof."
             )]
         public ListFlags List { get; set; }
 
@@ -119,6 +125,10 @@ namespace etrace
             foreach (var keyword in KernelKeywords)
             {
                 ParsedKernelKeywords |= (KernelTraceEventParser.Keywords)Enum.Parse(typeof(KernelTraceEventParser.Keywords), keyword);
+            }
+            foreach (var keyword in FrameworkEventKeywords)
+            {
+                ParsedFrameworkEventKeywords |= (FrameworkEventSourceTraceEventParser.Keywords)Enum.Parse(typeof(FrameworkEventSourceTraceEventParser.Keywords), keyword);
             }
         }
 
@@ -201,7 +211,7 @@ namespace etrace
         public bool IsFileSession => !String.IsNullOrEmpty(File);
         public long ParsedClrKeywords { get; private set; } = 0;
         public KernelTraceEventParser.Keywords ParsedKernelKeywords { get; private set; } = KernelTraceEventParser.Keywords.None;
-
+        public FrameworkEventSourceTraceEventParser.Keywords ParsedFrameworkEventKeywords { get; private set; } = 0;
 
         public class MultipleFilter : Filter
         {

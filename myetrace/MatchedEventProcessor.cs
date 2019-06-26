@@ -162,7 +162,7 @@ namespace etrace
 
         public FrameworkEventSourceTraceEventParser SetupHttpStatsParsing(Options options)
         {
-            int UriMaxLength = 100;
+            int UriMaxLength = 200;
             parser.GetResponseStart += delegate (BeginGetResponseArgs data)
             {
                 var processFilter = options.ParsedFilters.FirstOrDefault();
@@ -173,7 +173,15 @@ namespace etrace
                 {
                     if (data.uri.Length > UriMaxLength)
                     {
-                        this.countByHttpCallName.Add(data.uri?.Substring(0, UriMaxLength));
+                        int index = data.uri.IndexOf("?sv");
+                        string newUri = data.uri;
+
+                        if (index != -1)
+                        {
+                            newUri = data.uri.Substring(0, data.uri.IndexOf("?sv"));
+                        }
+
+                        this.countByHttpCallName.Add(newUri.Length > UriMaxLength ? newUri.Substring(0, UriMaxLength) : newUri);
                     }
                     else
                     {

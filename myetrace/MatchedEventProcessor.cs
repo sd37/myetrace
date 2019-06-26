@@ -101,7 +101,7 @@ namespace etrace
 
         public IDictionary<string, ulong> Counts { get; } = new Dictionary<string, ulong>();
     }
-    
+
     class EventStatisticsAggregator : IMatchedEventProcessor
     {
         private CountingDictionary countByEventName = new CountingDictionary();
@@ -160,21 +160,28 @@ namespace etrace
             TakeEvent(e);
         }
 
-        public FrameworkEventSourceTraceEventParser SetupHttpStatsParsing()
+        public FrameworkEventSourceTraceEventParser SetupHttpStatsParsing(Options options)
         {
             int UriMaxLength = 100;
             parser.GetResponseStart += delegate (BeginGetResponseArgs data)
             {
-                if (data.uri.Length > UriMaxLength)
-                {
-                    this.countByHttpCallName.Add(data.uri?.Substring(0, UriMaxLength));
-                }
-                else
-                {
-                    this.countByHttpCallName.Add(data.uri);
-                }
+                var processFilter = options.ParsedFilters.FirstOrDefault();
 
-                this.countByProcess.Add(data.ProcessID.ToString());
+                if (processFilter != null && 
+                    processFilter.Key == "ProcessId" && 
+                    processFilter.Value.ToString() == data.ProcessID.ToString())
+                {
+                    if (data.uri.Length > UriMaxLength)
+                    {
+                        this.countByHttpCallName.Add(data.uri?.Substring(0, UriMaxLength));
+                    }
+                    else
+                    {
+                        this.countByHttpCallName.Add(data.uri);
+                    }
+
+                    this.countByProcess.Add(data.ProcessID.ToString());
+                }
             };
 
             return parser;

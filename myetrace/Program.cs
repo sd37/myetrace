@@ -150,7 +150,7 @@ namespace etrace
                     {
                         var ep = eventProcessor as HttpEventStatisticsAggregator;
                         ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
-                        ep.SetupHttpStatsParsing();
+                        ep.SetupHttpStatsParsing(options);
                     }
                 }
                 if (options.OtherProviders.Any())

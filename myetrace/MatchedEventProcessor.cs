@@ -167,7 +167,7 @@ namespace etrace
             {
                 var processFilter = options.ParsedFilters.FirstOrDefault();
 
-                if (processFilter != null && 
+                if (processFilter == null || 
                     processFilter.Key == "ProcessId" && 
                     processFilter.Value.ToString() == data.ProcessID.ToString())
                 {

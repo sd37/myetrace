@@ -62,7 +62,7 @@ namespace etrace
             {
                 eventProcessor = new EveryEventTablePrinter(options.DisplayFields);
             }
-            else if (options.HttpStatsOnly)
+            else if (options.HttpStatsOnly || options.HttpLatencyStatsOnly)
             {
                 eventProcessor = new HttpEventStatisticsAggregator();
             }
@@ -105,7 +105,6 @@ namespace etrace
                     Console.WriteLine("{0,-30} {1}", "Processing end time:", DateTime.Now);
                     Console.WriteLine("{0,-30} {1}", "Processing duration:", sessionStartStopwatch.Elapsed);
                     Console.WriteLine("{0,-30} {1}", "Processed events:", processedEvents);
-                    Console.WriteLine("{0,-30} {1}", "Displayed events:", notFilteredEvents);
                     Console.WriteLine("{0,-30} {1}", "Events lost:", eventsLost);
                     statsPrinted = true;
                 }
@@ -146,11 +145,17 @@ namespace etrace
                     session.EnableProvider(FrameworkEventSourceTraceEventParser.ProviderGuid,
                         matchAnyKeywords: (ulong)options.ParsedFrameworkEventKeywords);
 
+                    var ep = eventProcessor as HttpEventStatisticsAggregator;
+                    ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
+                    ep.options = options;
+
                     if (options.HttpStatsOnly)
                     {
-                        var ep = eventProcessor as HttpEventStatisticsAggregator;
-                        ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
                         ep.SetupHttpStatsParsing(options);
+                    }
+                    else if (options.HttpLatencyStatsOnly)
+                    {
+                        ep.SetupHttpLatencyParsing(options);
                     }
                 }
                 if (options.OtherProviders.Any())

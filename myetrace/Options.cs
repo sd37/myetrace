@@ -79,6 +79,14 @@ namespace etrace
             HelpText = "Display only statistics for http requests and not individual events.")]
         public bool HttpStatsOnly { get; set; }
 
+        [Option("httplatencystats", Required = false,
+            HelpText = "Display only statistics for http requests latency.")]
+        public bool HttpLatencyStatsOnly { get; set; }
+
+        [Option("httplatencyaggs", Required = false,
+            HelpText = "Display only aggregations for http requests latency.")]
+        public bool HttpLatencyAggsOnly { get; set; }
+
         [OptionList("field", Required = false, Separator = ',',
             HelpText = "Display only these payload fields (if they exist). The special fields Event, PID, TID, Time can be specified for all events. An optional width specifier can be provided in square brackets. For example: PID,TID,ProcessName[16],Receiver[30],Time"
             )]

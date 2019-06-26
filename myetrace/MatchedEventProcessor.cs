@@ -101,6 +101,28 @@ namespace etrace
 
         public IDictionary<string, ulong> Counts { get; } = new Dictionary<string, ulong>();
     }
+    class GenericDictionary
+    {
+        public void Add(string key, double value)
+        {
+            Stats.Add(key, value);
+        }
+
+        public void Print(string header, string key)
+        {
+            var table = new ConsoleTable(key, "LatencyTime(ms)");
+            Console.WriteLine(header);
+            foreach (var item in Stats.OrderByDescending(pair => pair.Value))
+            {
+                table.AddRow(item.Key, item.Value);
+            }
+            table.Write();
+            Console.WriteLine();
+        }
+
+        public IDictionary<string, double> Stats { get; } = new Dictionary<string, double>();
+    }
+
 
     class EventStatisticsAggregator : IMatchedEventProcessor
     {
@@ -133,11 +155,12 @@ namespace etrace
     class HttpEventStatisticsAggregator : IMatchedEventProcessor
     {
         public FrameworkEventSourceTraceEventParser parser { get; set; }
+        public Options options { get; set; }
 
         private CountingDictionary countByHttpCallName = new CountingDictionary();
         private CountingDictionary countByProcess = new CountingDictionary();
+        private GenericDictionary httpLatencyStats = new GenericDictionary();
         private bool disposed = false;
-
 
         public void Dispose()
         {
@@ -147,8 +170,16 @@ namespace etrace
             }
 
             disposed = true;
-            countByHttpCallName.Print("HttpCalls", "HttpRequest");
-            countByProcess.Print("Events by process", "Process");
+
+            if (options.HttpStatsOnly)
+            {
+                countByHttpCallName.Print("HttpCalls", "HttpRequest");
+                countByProcess.Print("Events by process", "Process");
+            }
+            else if (options.HttpLatencyStatsOnly)
+            {
+                httpLatencyStats.Print("HttpCalls", "HttpRequests");
+            }
         }
 
         public void TakeEvent(TraceEvent e)
@@ -160,15 +191,15 @@ namespace etrace
             TakeEvent(e);
         }
 
-        public FrameworkEventSourceTraceEventParser SetupHttpStatsParsing(Options options)
+        public void SetupHttpStatsParsing(Options options)
         {
             int UriMaxLength = 200;
             parser.GetResponseStart += delegate (BeginGetResponseArgs data)
             {
                 var processFilter = options.ParsedFilters.FirstOrDefault();
 
-                if (processFilter == null || 
-                    processFilter.Key == "ProcessId" && 
+                if (processFilter == null ||
+                    processFilter.Key == "ProcessId" &&
                     processFilter.Value.ToString() == data.ProcessID.ToString())
                 {
                     if (data.uri.Length > UriMaxLength)
@@ -191,8 +222,58 @@ namespace etrace
                     this.countByProcess.Add(data.ProcessID.ToString());
                 }
             };
+        }
 
-            return parser;
+        public void SetupHttpLatencyParsing(Options options)
+        {
+            int UriMaxLength = 200;
+            long? httpRequestCorrelationId = null;
+            string newUri = null;
+            DateTime? startTime = null;
+            DateTime? endTime = null;
+
+            parser.GetResponseStart += delegate (BeginGetResponseArgs data)
+            {
+                var processFilter = options.ParsedFilters.FirstOrDefault();
+                if (processFilter == null ||
+                    processFilter.Key == "ProcessId" &&
+                    processFilter.Value.ToString() == data.ProcessID.ToString())
+                {
+                    startTime = data.TimeStamp;
+                    httpRequestCorrelationId = data.id;
+
+                    if (data.uri.Length > UriMaxLength)
+                    {
+                        int index = data.uri.IndexOf("?sv");
+                        newUri = data.uri;
+
+                        if (index != -1)
+                        {
+                            newUri = data.uri.Substring(0, data.uri.IndexOf("?sv"));
+                        }
+                    }
+                    else
+                    {
+                        newUri = data.uri;
+                    }
+                }
+            };
+
+            parser.GetResponseStop += delegate (EndGetResponseArgs data)
+            {
+                var processFilter = options.ParsedFilters.FirstOrDefault();
+                if (processFilter == null ||
+                    processFilter.Key == "ProcessId" &&
+                    processFilter.Value.ToString() == data.ProcessID.ToString())
+                {
+                    if (!string.IsNullOrEmpty(newUri) && startTime != null && data.id == httpRequestCorrelationId)
+                    {
+                        endTime = data.TimeStamp;
+                        var elapsedTime = (endTime.GetValueOrDefault() - startTime.GetValueOrDefault()).TotalMilliseconds;
+                        this.httpLatencyStats.Add($"{newUri}|{data.id}|{data.ProcessID}", elapsedTime);
+                    }
+                }
+            };
         }
     }
 }

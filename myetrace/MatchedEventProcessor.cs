@@ -1,5 +1,9 @@
 ﻿using ConsoleTables.Core;
 using Microsoft.Diagnostics.Tracing;
+using Microsoft.Diagnostics.Tracing.Parsers;
+using Microsoft.Diagnostics.Tracing.Parsers.FrameworkEventSource;
+using Microsoft.Diagnostics.Tracing.Session;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -107,7 +111,7 @@ namespace etrace
         public void TakeEvent(TraceEvent e)
         {
             countByEventName.Add(e.EventName);
-            countByProcess.Add(e.ProcessName);
+            countByProcess.Add(e.ProcessID.ToString());
         }
 
         public void TakeEvent(TraceEvent e, string description)
@@ -123,6 +127,57 @@ namespace etrace
             disposed = true;
             countByEventName.Print("Events by name", "Event");
             countByProcess.Print("Events by process", "Process");
+        }
+    }
+
+    class HttpEventStatisticsAggregator : IMatchedEventProcessor
+    {
+        public FrameworkEventSourceTraceEventParser parser { get; set; }
+
+        private CountingDictionary countByHttpCallName = new CountingDictionary();
+        private CountingDictionary countByProcess = new CountingDictionary();
+        private bool disposed = false;
+
+
+        public void Dispose()
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            countByHttpCallName.Print("HttpCalls", "HttpRequest");
+            countByProcess.Print("Events by process", "Process");
+        }
+
+        public void TakeEvent(TraceEvent e)
+        {
+        }
+
+        public void TakeEvent(TraceEvent e, string description)
+        {
+            TakeEvent(e);
+        }
+
+        public FrameworkEventSourceTraceEventParser SetupHttpStatsParsing()
+        {
+            int UriMaxLength = 100;
+            parser.GetResponseStart += delegate (BeginGetResponseArgs data)
+            {
+                if (data.uri.Length > UriMaxLength)
+                {
+                    this.countByHttpCallName.Add(data.uri?.Substring(0, UriMaxLength));
+                }
+                else
+                {
+                    this.countByHttpCallName.Add(data.uri);
+                }
+
+                this.countByProcess.Add(data.ProcessID.ToString());
+            };
+
+            return parser;
         }
     }
 }

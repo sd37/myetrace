@@ -1,6 +1,7 @@
 ﻿using CommandLine;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
+using Microsoft.Diagnostics.Tracing.Parsers.FrameworkEventSource;
 using Microsoft.Diagnostics.Tracing.Session;
 using System;
 using System.Diagnostics;
@@ -54,11 +55,21 @@ namespace etrace
         private static void CreateEventProcessor()
         {
             if (options.StatsOnly)
+            {
                 eventProcessor = new EventStatisticsAggregator();
+            }
             else if (options.DisplayFields.Count > 0)
+            {
                 eventProcessor = new EveryEventTablePrinter(options.DisplayFields);
+            }
+            else if (options.HttpStatsOnly)
+            {
+                eventProcessor = new HttpEventStatisticsAggregator();
+            }
             else
+            {
                 eventProcessor = new EveryEventPrinter();
+            }
         }
 
         private static void FileSession()
@@ -134,6 +145,13 @@ namespace etrace
                 {
                     session.EnableProvider(FrameworkEventSourceTraceEventParser.ProviderGuid,
                         matchAnyKeywords: (ulong)options.ParsedFrameworkEventKeywords);
+
+                    if (options.HttpStatsOnly)
+                    {
+                        var ep = eventProcessor as HttpEventStatisticsAggregator;
+                        ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
+                        ep.SetupHttpStatsParsing();
+                    }
                 }
                 if (options.OtherProviders.Any())
                 {

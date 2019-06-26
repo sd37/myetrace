@@ -75,6 +75,10 @@ namespace etrace
             HelpText = "Display only statistics and not individual events.")]
         public bool StatsOnly { get; set; }
 
+        [Option("httpstats", Required = false,
+            HelpText = "Display only statistics for http requests and not individual events.")]
+        public bool HttpStatsOnly { get; set; }
+
         [OptionList("field", Required = false, Separator = ',',
             HelpText = "Display only these payload fields (if they exist). The special fields Event, PID, TID, Time can be specified for all events. An optional width specifier can be provided in square brackets. For example: PID,TID,ProcessName[16],Receiver[30],Time"
             )]
@@ -101,7 +105,8 @@ namespace etrace
             help.AddPostOptionsLine("  etrace --kernel Process --event --where \"ThreadId=1999 && ProcessId=4\"");
             help.AddPostOptionsLine("  etrace --clr GC --event GC/Start --duration 60");
             help.AddPostOptionsLine("  etrace --other Microsoft-Windows-Win32k --event QueuePostMessage");
-            help.AddPostOptionsLine("  etrace --list CLR,Kernel");
+            help.AddPostOptionsLine("  etrace --framework NetClient --httpstats");
+            help.AddPostOptionsLine("  etrace --list CLR,Kernel,Framework");
 
             return help.ToString();
         }

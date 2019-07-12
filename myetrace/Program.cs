@@ -145,16 +145,18 @@ namespace etrace
                     session.EnableProvider(FrameworkEventSourceTraceEventParser.ProviderGuid,
                         matchAnyKeywords: (ulong)options.ParsedFrameworkEventKeywords);
 
-                    var ep = eventProcessor as HttpEventStatisticsAggregator;
-                    ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
-                    ep.options = options;
-
                     if (options.HttpStatsOnly)
                     {
+                        var ep = eventProcessor as HttpEventStatisticsAggregator;
+                        ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
+                        ep.options = options;
                         ep.SetupHttpStatsParsing(options);
                     }
                     else if (options.HttpLatencyStatsOnly)
                     {
+                        var ep = eventProcessor as HttpEventStatisticsAggregator;
+                        ep.parser = new FrameworkEventSourceTraceEventParser(session.Source);
+                        ep.options = options;
                         ep.SetupHttpLatencyParsing(options);
                     }
                 }

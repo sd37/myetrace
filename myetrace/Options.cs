@@ -114,6 +114,8 @@ namespace etrace
             help.AddPostOptionsLine("  etrace --clr GC --event GC/Start --duration 60");
             help.AddPostOptionsLine("  etrace --other Microsoft-Windows-Win32k --event QueuePostMessage");
             help.AddPostOptionsLine("  etrace --framework NetClient --httpstats");
+            help.AddPostOptionsLine("  etrace --framework NetClient --httplatencystats");
+            help.AddPostOptionsLine("  etrace --framework NetClient --event GetResponse/Start,GetResponse/Stop");
             help.AddPostOptionsLine("  etrace --list CLR,Kernel,Framework");
 
             return help.ToString();
